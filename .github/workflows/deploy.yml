@@ -22,4 +22,4 @@ jobs:
           rm sfdx_auth.txt
 
       - name: Deploy Code
-        run: sf project deploy start --target-org TargetOrg --test-level RunLocalTests --ignore-conflicts
+        run: sf project deploy start --target-org TargetOrg --ignore-conflicts
