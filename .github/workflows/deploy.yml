@@ -1,0 +1,25 @@
+name: Deploy to Target Dev Org
+
+on:
+  push:
+    branches:
+      - main 
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Authenticate to Target Org
+        run: |
+          echo "${{ secrets.SF_TARGET_AUTH_URL }}" > sfdx_auth.txt
+          sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
+          rm sfdx_auth.txt
+
+      - name: Deploy Code
+        run: sf project deploy start --target-org TargetOrg --ignore-conflicts
