@@ -1,12 +1,13 @@
-name: Deploy to Target Dev Org
+name: Validate PR (Dry Run)
 
+# This triggers ONLY when a Pull Request is opened or updated against main
 on:
-  push:
+  pull_request:
     branches:
-      - main 
+      - main
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -21,5 +22,6 @@ jobs:
           sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
           rm sfdx_auth.txt
 
-      - name: Deploy Code
-        run: sf project deploy start --target-org TargetOrg --test-level RunLocalTests --ignore-conflicts
+      # Notice the --dry-run flag. This validates the code but DOES NOT save it.
+      - name: Validate Deployment
+        run: sf project deploy start --target-org TargetOrg --dry-run --test-level RunLocalTests --ignore-conflicts
