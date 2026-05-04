@@ -1,3 +1,4 @@
 {
+  "_defaults": ["HelloWorldTest"],
   "HelloWorld": "HelloWorldTest"
 }

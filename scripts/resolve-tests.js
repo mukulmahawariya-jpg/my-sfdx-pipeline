@@ -99,4 +99,10 @@ for (const file of changedSourceClasses) {
   console.warn(`WARNING: No test class found for '${className}' — skipping.`);
 }
 
+// Fall back to defaults if nothing was resolved
+if (resolved.size === 0 && Array.isArray(manualMapping._defaults)) {
+  console.warn('No test classes resolved — falling back to defaults.');
+  manualMapping._defaults.forEach((t) => resolved.add(t));
+}
+
 process.stdout.write([...resolved].join(','));

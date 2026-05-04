@@ -45,9 +45,10 @@ jobs:
             DESTRUCTIVE_FLAG="--post-destructive-changes destructiveChanges.xml"
           fi
 
-          if [ -n "$TEST_CLASSES" ] && [ -n "$METADATA_FLAGS" ]; then
-            # Additions/modifications — selective deploy + specified tests
-            TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
+          TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
+
+          if [ -n "$METADATA_FLAGS" ]; then
+            # Additions/modifications — selective deploy + specified tests (or defaults)
             echo "Running RunSpecifiedTests for: $TEST_CLASSES"
             echo "Deploying only: $METADATA_FLAGS"
             sf project deploy start \
@@ -60,19 +61,22 @@ jobs:
               --ignore-conflicts
           elif [ -n "$DESTRUCTIVE_FLAG" ]; then
             # Deletions only — requires --manifest alongside --post-destructive-changes
-            echo "Destructive-only deployment"
+            echo "Destructive-only deployment — running defaults: $TEST_CLASSES"
             sf project deploy start \
               --target-org TargetOrg \
               --dry-run \
               --manifest package.xml \
               --post-destructive-changes destructiveChanges.xml \
-              --test-level RunLocalTests \
+              --test-level RunSpecifiedTests \
+              $TESTS_FLAGS \
               --ignore-conflicts
           else
-            echo "No specific classes detected — running full deployment with RunLocalTests"
+            # No Apex changes — full deploy with defaults as smoke test
+            echo "No Apex changes — running defaults as smoke test: $TEST_CLASSES"
             sf project deploy start \
               --target-org TargetOrg \
               --dry-run \
-              --test-level RunLocalTests \
+              --test-level RunSpecifiedTests \
+              $TESTS_FLAGS \
               --ignore-conflicts
           fi
