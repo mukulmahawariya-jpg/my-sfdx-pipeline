@@ -39,13 +39,16 @@ jobs:
             | tr '\n' ' ')
 
           if [ -n "$TEST_CLASSES" ] && [ -n "$METADATA_FLAGS" ]; then
+            # Build repeated --tests flags (new sf CLI syntax)
+            TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
+
             echo "Running RunSpecifiedTests for: $TEST_CLASSES"
             echo "Deploying only: $METADATA_FLAGS"
             sf project deploy start \
               --target-org TargetOrg \
               --dry-run \
               --test-level RunSpecifiedTests \
-              --tests "$TEST_CLASSES" \
+              $TESTS_FLAGS \
               $METADATA_FLAGS \
               --ignore-conflicts
           else
