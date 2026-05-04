@@ -28,15 +28,22 @@ jobs:
         run: |
           BASE=origin/${{ github.base_ref }}
 
-          # Resolve test classes for changed files
+          # Resolve test classes for changed/added files
           TEST_CLASSES=$(node scripts/resolve-tests.js $BASE)
 
-          # Build --metadata flags for only the changed Apex classes
-          METADATA_FLAGS=$(git diff --name-only $BASE...HEAD \
+          # Build --metadata flags for modified/added Apex classes
+          METADATA_FLAGS=$(git diff --name-only --diff-filter=ACM $BASE...HEAD \
             | grep '\.cls$' \
             | xargs -I{} basename {} .cls \
             | sed 's/^/--metadata ApexClass:/' \
             | tr '\n' ' ')
+
+          # Generate destructiveChanges.xml for deleted Apex classes
+          node scripts/generate-destructive-changes.js $BASE destructiveChanges.xml
+          DESTRUCTIVE_FLAG=""
+          if [ -f destructiveChanges.xml ]; then
+            DESTRUCTIVE_FLAG="--post-destructive-changes destructiveChanges.xml"
+          fi
 
           if [ -n "$TEST_CLASSES" ] && [ -n "$METADATA_FLAGS" ]; then
             # Build repeated --tests flags (new sf CLI syntax)
@@ -50,6 +57,7 @@ jobs:
               --test-level RunSpecifiedTests \
               $TESTS_FLAGS \
               $METADATA_FLAGS \
+              $DESTRUCTIVE_FLAG \
               --ignore-conflicts
           else
             echo "No specific classes detected — running full deployment with RunLocalTests"
@@ -57,5 +65,6 @@ jobs:
               --target-org TargetOrg \
               --dry-run \
               --test-level RunLocalTests \
+              $DESTRUCTIVE_FLAG \
               --ignore-conflicts
           fi
