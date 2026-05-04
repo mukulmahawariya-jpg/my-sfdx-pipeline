@@ -3,7 +3,7 @@ name: Deploy to Target Dev Org
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   deploy:
@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli
@@ -22,4 +24,55 @@ jobs:
           rm sfdx_auth.txt
 
       - name: Deploy Code
-        run: sf project deploy start --target-org TargetOrg --test-level RunLocalTests --ignore-conflicts
+        run: |
+          BASE=${{ github.event.before }}
+
+          # Resolve test classes for changed/added files
+          TEST_CLASSES=$(node scripts/resolve-tests.js $BASE)
+
+          # Build --metadata flags for modified/added Apex classes
+          METADATA_FLAGS=$(git diff --name-only --diff-filter=ACM $BASE...HEAD \
+            | grep '\.cls$' \
+            | xargs -I{} basename {} .cls \
+            | sed 's/^/--metadata ApexClass:/' \
+            | tr '\n' ' ')
+
+          # Generate destructiveChanges.xml for deleted Apex classes
+          node scripts/generate-destructive-changes.js $BASE destructiveChanges.xml
+          DESTRUCTIVE_FLAG=""
+          if [ -f destructiveChanges.xml ]; then
+            DESTRUCTIVE_FLAG="--post-destructive-changes destructiveChanges.xml"
+          fi
+
+          TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
+
+          if [ -n "$METADATA_FLAGS" ]; then
+            # Additions/modifications — selective deploy + specified tests (or defaults)
+            echo "Running RunSpecifiedTests for: $TEST_CLASSES"
+            echo "Deploying only: $METADATA_FLAGS"
+            sf project deploy start \
+              --target-org TargetOrg \
+              --test-level RunSpecifiedTests \
+              $TESTS_FLAGS \
+              $METADATA_FLAGS \
+              $DESTRUCTIVE_FLAG \
+              --ignore-conflicts
+          elif [ -n "$DESTRUCTIVE_FLAG" ]; then
+            # Deletions only — requires --manifest alongside --post-destructive-changes
+            echo "Destructive-only deployment — running defaults: $TEST_CLASSES"
+            sf project deploy start \
+              --target-org TargetOrg \
+              --manifest package.xml \
+              --post-destructive-changes destructiveChanges.xml \
+              --test-level RunSpecifiedTests \
+              $TESTS_FLAGS \
+              --ignore-conflicts
+          else
+            # No Apex changes — full deploy with defaults as smoke test
+            echo "No Apex changes — running defaults as smoke test: $TEST_CLASSES"
+            sf project deploy start \
+              --target-org TargetOrg \
+              --test-level RunSpecifiedTests \
+              $TESTS_FLAGS \
+              --ignore-conflicts
+          fi
