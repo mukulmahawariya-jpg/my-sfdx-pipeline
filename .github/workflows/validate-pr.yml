@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli
@@ -22,6 +24,25 @@ jobs:
           sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
           rm sfdx_auth.txt
 
-      # Notice the --dry-run flag. This validates the code but DOES NOT save it.
+      - name: Resolve Test Classes
+        id: resolve_tests
+        run: |
+          TEST_CLASSES=$(node scripts/resolve-tests.js origin/${{ github.base_ref }})
+          echo "test_classes=$TEST_CLASSES" >> $GITHUB_OUTPUT
+
       - name: Validate Deployment
-        run: sf project deploy start --target-org TargetOrg --dry-run --test-level RunLocalTests --ignore-conflicts
+        run: |
+          if [ -n "${{ steps.resolve_tests.outputs.test_classes }}" ]; then
+            sf project deploy start \
+              --target-org TargetOrg \
+              --dry-run \
+              --test-level RunSpecifiedTests \
+              --tests "${{ steps.resolve_tests.outputs.test_classes }}" \
+              --ignore-conflicts
+          else
+            sf project deploy start \
+              --target-org TargetOrg \
+              --dry-run \
+              --test-level RunLocalTests \
+              --ignore-conflicts
+          fi
