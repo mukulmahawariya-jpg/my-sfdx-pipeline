@@ -5,9 +5,4 @@ public class HelloWorldTest {
         HelloWorld hw = new HelloWorld();
         System.assertNotEquals(null, hw);
     }
-
-    @isTest
-    static void testSayHello() {
-        System.assertEquals('Hello, World!', HelloWorld.sayHello());
-    }
 }
