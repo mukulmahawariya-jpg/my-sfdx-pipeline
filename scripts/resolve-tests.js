@@ -64,13 +64,9 @@ try {
   process.exit(1);
 }
 
-if (!allChangedCls.length || (allChangedCls.length === 1 && allChangedCls[0] === '')) {
-  process.stdout.write('');
-  process.exit(0);
-}
-
-const changedSourceClasses = allChangedCls.filter((f) => !f.endsWith('Test.cls'));
-const changedTestClasses = allChangedCls.filter((f) => f.endsWith('Test.cls'));
+const noChanges = !allChangedCls.length || (allChangedCls.length === 1 && allChangedCls[0] === '');
+const changedSourceClasses = noChanges ? [] : allChangedCls.filter((f) => !f.endsWith('Test.cls'));
+const changedTestClasses = noChanges ? [] : allChangedCls.filter((f) => f.endsWith('Test.cls'));
 
 const resolved = new Set();
 
