@@ -59,3 +59,12 @@ ${members}
 
 fs.writeFileSync(path.join(repoRoot, outputFile), xml, 'utf8');
 console.log(`Written: ${outputFile}`);
+
+// Write an empty package.xml required by --manifest when doing destructive-only deployments
+const emptyPackage = `<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <version>${apiVersion}</version>
+</Package>
+`;
+fs.writeFileSync(path.join(repoRoot, 'package.xml'), emptyPackage, 'utf8');
+console.log('Written: package.xml (empty manifest for destructive-only deployment)');

@@ -46,9 +46,8 @@ jobs:
           fi
 
           if [ -n "$TEST_CLASSES" ] && [ -n "$METADATA_FLAGS" ]; then
-            # Build repeated --tests flags (new sf CLI syntax)
+            # Additions/modifications — selective deploy + specified tests
             TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
-
             echo "Running RunSpecifiedTests for: $TEST_CLASSES"
             echo "Deploying only: $METADATA_FLAGS"
             sf project deploy start \
@@ -59,12 +58,21 @@ jobs:
               $METADATA_FLAGS \
               $DESTRUCTIVE_FLAG \
               --ignore-conflicts
+          elif [ -n "$DESTRUCTIVE_FLAG" ]; then
+            # Deletions only — requires --manifest alongside --post-destructive-changes
+            echo "Destructive-only deployment"
+            sf project deploy start \
+              --target-org TargetOrg \
+              --dry-run \
+              --manifest package.xml \
+              --post-destructive-changes destructiveChanges.xml \
+              --test-level RunLocalTests \
+              --ignore-conflicts
           else
             echo "No specific classes detected — running full deployment with RunLocalTests"
             sf project deploy start \
               --target-org TargetOrg \
               --dry-run \
               --test-level RunLocalTests \
-              $DESTRUCTIVE_FLAG \
               --ignore-conflicts
           fi
