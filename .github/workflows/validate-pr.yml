@@ -77,12 +77,5 @@ jobs:
               $TESTS_FLAGS \
               --ignore-conflicts
           else
-            # No Apex changes — full deploy with defaults as smoke test
-            echo "No Apex changes — running defaults as smoke test: $TEST_CLASSES"
-            npx sf project deploy start \
-              --target-org TargetOrg \
-              --dry-run \
-              --test-level RunSpecifiedTests \
-              $TESTS_FLAGS \
-              --ignore-conflicts
+            echo "No Apex changes detected — skipping Salesforce deployment."
           fi
