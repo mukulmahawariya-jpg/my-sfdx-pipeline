@@ -51,27 +51,36 @@ const manualMapping = fs.existsSync(mappingFile)
   ? JSON.parse(fs.readFileSync(mappingFile, 'utf8'))
   : {};
 
-// Get changed .cls files in this PR (excluding test classes themselves)
-let changedFiles;
+// Get all changed .cls files in this PR
+let allChangedCls;
 try {
-  changedFiles = execSync(`git diff --name-only ${baseBranch}...HEAD`, { cwd: repoRoot })
+  allChangedCls = execSync(`git diff --name-only ${baseBranch}...HEAD`, { cwd: repoRoot })
     .toString()
     .trim()
     .split('\n')
-    .filter((f) => f.endsWith('.cls') && !f.endsWith('Test.cls'));
+    .filter((f) => f.endsWith('.cls'));
 } catch {
   console.error('ERROR: Could not run git diff. Ensure fetch-depth: 0 in checkout step.');
   process.exit(1);
 }
 
-if (!changedFiles.length || (changedFiles.length === 1 && changedFiles[0] === '')) {
+if (!allChangedCls.length || (allChangedCls.length === 1 && allChangedCls[0] === '')) {
   process.stdout.write('');
   process.exit(0);
 }
 
+const changedSourceClasses = allChangedCls.filter((f) => !f.endsWith('Test.cls'));
+const changedTestClasses = allChangedCls.filter((f) => f.endsWith('Test.cls'));
+
 const resolved = new Set();
 
-for (const file of changedFiles) {
+// Directly changed test classes — always include them
+for (const file of changedTestClasses) {
+  resolved.add(path.basename(file, '.cls'));
+}
+
+// For each changed source class, resolve its test class
+for (const file of changedSourceClasses) {
   const className = path.basename(file, '.cls');
 
   // 1. Convention: <ClassName>Test.cls exists in any package directory?

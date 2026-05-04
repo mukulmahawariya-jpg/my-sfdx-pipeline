@@ -27,7 +27,7 @@ jobs:
       - name: Resolve Test Classes
         id: resolve_tests
         run: |
-          TEST_CLASSES=$(node scripts/resolve-tests.js origin/main)
+          TEST_CLASSES=$(node scripts/resolve-tests.js origin/${{ github.base_ref }})
           echo "test_classes=$TEST_CLASSES" >> $GITHUB_OUTPUT
 
       - name: Validate Deployment
