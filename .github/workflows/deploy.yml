@@ -14,13 +14,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Salesforce CLI
-        run: npm install -g @salesforce/cli
+      - name: Setup Node and Cache Dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Authenticate to Target Org
         run: |
           echo "${{ secrets.SF_TARGET_AUTH_URL }}" > sfdx_auth.txt
-          sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
+          npx sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
           rm sfdx_auth.txt
 
       - name: Deploy Code
@@ -50,7 +56,7 @@ jobs:
             # Additions/modifications — selective deploy + specified tests (or defaults)
             echo "Running RunSpecifiedTests for: $TEST_CLASSES"
             echo "Deploying only: $METADATA_FLAGS"
-            sf project deploy start \
+            npx sf project deploy start \
               --target-org TargetOrg \
               --test-level RunSpecifiedTests \
               $TESTS_FLAGS \
@@ -60,7 +66,7 @@ jobs:
           elif [ -n "$DESTRUCTIVE_FLAG" ]; then
             # Deletions only — requires --manifest alongside --post-destructive-changes
             echo "Destructive-only deployment — running defaults: $TEST_CLASSES"
-            sf project deploy start \
+            npx sf project deploy start \
               --target-org TargetOrg \
               --manifest package.xml \
               --post-destructive-changes destructiveChanges.xml \
@@ -70,7 +76,7 @@ jobs:
           else
             # No Apex changes — full deploy with defaults as smoke test
             echo "No Apex changes — running defaults as smoke test: $TEST_CLASSES"
-            sf project deploy start \
+            npx sf project deploy start \
               --target-org TargetOrg \
               --test-level RunSpecifiedTests \
               $TESTS_FLAGS \
