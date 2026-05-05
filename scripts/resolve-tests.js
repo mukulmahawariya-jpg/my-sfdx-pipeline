@@ -64,13 +64,9 @@ try {
   process.exit(1);
 }
 
-if (!allChangedCls.length || (allChangedCls.length === 1 && allChangedCls[0] === '')) {
-  process.stdout.write('');
-  process.exit(0);
-}
-
-const changedSourceClasses = allChangedCls.filter((f) => !f.endsWith('Test.cls'));
-const changedTestClasses = allChangedCls.filter((f) => f.endsWith('Test.cls'));
+const noChanges = !allChangedCls.length || (allChangedCls.length === 1 && allChangedCls[0] === '');
+const changedSourceClasses = noChanges ? [] : allChangedCls.filter((f) => !f.endsWith('Test.cls'));
+const changedTestClasses = noChanges ? [] : allChangedCls.filter((f) => f.endsWith('Test.cls'));
 
 const resolved = new Set();
 
@@ -97,6 +93,12 @@ for (const file of changedSourceClasses) {
   }
 
   console.warn(`WARNING: No test class found for '${className}' — skipping.`);
+}
+
+// Fall back to defaults if nothing was resolved
+if (resolved.size === 0 && Array.isArray(manualMapping._defaults)) {
+  console.warn('No test classes resolved — falling back to defaults.');
+  manualMapping._defaults.forEach((t) => resolved.add(t));
 }
 
 process.stdout.write([...resolved].join(','));

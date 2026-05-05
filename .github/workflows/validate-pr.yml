@@ -15,13 +15,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Salesforce CLI
-        run: npm install -g @salesforce/cli
+      - name: Setup Node and Cache Dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Authenticate to Target Org
         run: |
           echo "${{ secrets.SF_TARGET_AUTH_URL }}" > sfdx_auth.txt
-          sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
+          npx sf org login sfdx-url --sfdx-url-file sfdx_auth.txt --set-default --alias TargetOrg
           rm sfdx_auth.txt
 
       - name: Validate Deployment
@@ -45,13 +51,13 @@ jobs:
             DESTRUCTIVE_FLAG="--post-destructive-changes destructiveChanges.xml"
           fi
 
-          if [ -n "$TEST_CLASSES" ] && [ -n "$METADATA_FLAGS" ]; then
-            # Build repeated --tests flags (new sf CLI syntax)
-            TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
+          TESTS_FLAGS=$(echo "$TEST_CLASSES" | tr ',' '\n' | sed 's/^/--tests /' | tr '\n' ' ')
 
+          if [ -n "$METADATA_FLAGS" ]; then
+            # Additions/modifications — selective deploy + specified tests (or defaults)
             echo "Running RunSpecifiedTests for: $TEST_CLASSES"
             echo "Deploying only: $METADATA_FLAGS"
-            sf project deploy start \
+            npx sf project deploy start \
               --target-org TargetOrg \
               --dry-run \
               --test-level RunSpecifiedTests \
@@ -59,12 +65,17 @@ jobs:
               $METADATA_FLAGS \
               $DESTRUCTIVE_FLAG \
               --ignore-conflicts
-          else
-            echo "No specific classes detected — running full deployment with RunLocalTests"
-            sf project deploy start \
+          elif [ -n "$DESTRUCTIVE_FLAG" ]; then
+            # Deletions only — requires --manifest alongside --post-destructive-changes
+            echo "Destructive-only deployment — running defaults: $TEST_CLASSES"
+            npx sf project deploy start \
               --target-org TargetOrg \
               --dry-run \
-              --test-level RunLocalTests \
-              $DESTRUCTIVE_FLAG \
+              --manifest package.xml \
+              --post-destructive-changes destructiveChanges.xml \
+              --test-level RunSpecifiedTests \
+              $TESTS_FLAGS \
               --ignore-conflicts
+          else
+            echo "No Apex changes detected — skipping Salesforce deployment."
           fi
