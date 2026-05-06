@@ -86,9 +86,12 @@ for (const file of changedSourceClasses) {
     continue;
   }
 
-  // 2. Manual mapping fallback
+  // 2. Manual mapping fallback (supports a single string or an array of test classes)
   if (manualMapping[className]) {
-    resolved.add(manualMapping[className]);
+    const tests = Array.isArray(manualMapping[className])
+      ? manualMapping[className]
+      : [manualMapping[className]];
+    tests.forEach((t) => resolved.add(t));
     continue;
   }
 
