@@ -30,16 +30,18 @@ Single source of truth for test class configuration.
 ```json
 {
   "_defaults": ["HelloWorldTest"],
-  "HelloWorld": "HelloWorldTest"
+  "HelloWorld": ["HelloWorldTest"],
+  "OrderService": ["OrderServiceTest", "OrderServiceIntegrationTest"]
 }
 ```
 
 | Key | Purpose |
 |---|---|
 | `_defaults` | Test classes that run when no specific tests are resolved (smoke tests) |
-| `"ClassName": "TestClass"` | Manual override for non-conventional test class names |
+| `"ClassName": "TestClass"` | Single test class override (string) |
+| `"ClassName": ["TestA", "TestB"]` | Multiple test classes override (array) |
 
-**You only need to add entries here for non-standard naming.** If your test class follows the `<ClassName>Test` convention and the file exists on disk, it is auto-discovered.
+**You only need to add entries here for non-standard naming.** If your test class follows the `<ClassName>Test` convention and the file exists on disk, it is auto-discovered. For classes that require multiple test classes, use the array form.
 
 ---
 
@@ -57,7 +59,7 @@ Resolves which test classes to run based on changed Apex files in the PR/push.
 
 2. Manual mapping
    └─ Is there an entry in test-class-mapping.json?
-      YES → use the mapped test class
+      YES → use the mapped test class(es) — string or array both supported
       NO  ↓
 
 3. Warning — class skipped
@@ -185,7 +187,16 @@ This replaces the previous `npm install -g @salesforce/cli` which re-downloaded 
 1. Create both class files
 2. Add one entry to `test-class-mapping.json`:
    ```json
-   { "FooService": "FooSuite" }
+   { "FooService": ["FooSuite"] }
+   ```
+3. Commit and open a PR
+
+### Multiple test classes (`FooService.cls` tested by `FooSuite.cls` and `FooIntegrationTest.cls`)
+
+1. Create all class files
+2. Add an array entry to `test-class-mapping.json`:
+   ```json
+   { "FooService": ["FooSuite", "FooIntegrationTest"] }
    ```
 3. Commit and open a PR
 
