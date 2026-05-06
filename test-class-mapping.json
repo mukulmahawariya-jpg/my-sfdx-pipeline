@@ -1,4 +1,5 @@
 {
   "_defaults": ["HelloWorldTest"],
-  "HelloWorld": "HelloWorldTest"
+  "HelloWorld": ["HelloWorldTest"],
+  "OrderService": ["OrderServiceTest", "OrderServiceIntegrationTest"]
 }
